@@ -7,27 +7,61 @@ from odoo import api, fields, models
 class ProductTemplate(models.Model):
     _inherit = 'product.template'
 
-    ovh_status = fields.Selection(
+    status = fields.Selection(
         [('proto', '[1]Proto R&D'), ('indus', '[10]Preserie Indus'),
          ('pprod', '[100]Preserie Prod'), ('mprod', '[1000]Mass-Prod'),
          ('eol', 'End of Life'), ('inactive', 'Inactive')],
         default='proto',
-        compute='_compute_ovh_status',
-        inverse='_inverse_ovh_status',
+        compute='_compute_status',
+        inverse='_inverse_status',
         string='OVH Status',
         track_visibility='onchange')
 
-    @api.depends('product_variant_ids', 'product_variant_ids.ovh_status')
-    def _compute_ovh_status(self):
-        unique_variants = self.filtered(
-            lambda template: len(template.product_variant_ids) == 1)
-        for template in unique_variants:
-            template.ovh_status = template.product_variant_ids.ovh_status
+    @api.depends('product_variant_ids', 'product_variant_ids.status')
+    def _compute_status(self):
+        for template in self:
+            if len(template.product_variant_ids) != 1:
+                continue
+            template.status = template.product_variant_ids.status
 
     @api.multi
-    def _inverse_ovh_status(self):
+    def _inverse_status(self):
         if len(self.product_variant_ids) == 1:
-            self.product_variant_ids.ovh_status = self.ovh_status
+            self.product_variant_ids.status = self.status
+
+    @api.onchange('status')
+    def _onchange_status(self):
+        for template in self:
+            # self holds the new status of the product
+            if template.status == 'indus':
+                # When status is changed to 10, check the box "Can be sold"
+                template.sale_ok = True
+            elif template.status == 'eol':
+                # When status is changed to EoL,
+                # uncheck the box "Can be purchased"
+                template.purchase_ok = False
+            template.product_variant_id.email_product_state_change(
+             template, template.product_variant_id)
+        return
+
+    @api.model
+    def send_notify_product_state_change(self, product):
+        # send email to recipients from the Product State Change Channel.
+        self.email_product_state_change(product)
+        return True
+
+
+class ProductProduct(models.Model):
+    _inherit = 'product.product'
+
+    # TBD: check on how not to affect service/consumable product
+    status = fields.Selection(
+        [('proto', '[1]Proto R&D'), ('indus', '[10]Preserie Indus'),
+         ('pprod', '[100]Preserie Prod'), ('mprod', '[1000]Mass-Prod'),
+         ('eol', 'End of Life'), ('inactive', 'Inactive')],
+        default='proto',
+        string='OVH Status',
+        track_visibility='onchange')
 
     @api.model
     def _prepare_product_workflow(self):
@@ -44,68 +78,30 @@ class ProductTemplate(models.Model):
         return msg_values
 
     @api.model
-    def email_product_state_change(self, product_change):
+    def email_product_state_change(self, new_object, product_change):
         if not product_change:
             return
         msg_values = self._prepare_product_workflow()
         product_change.message_post_with_view(
             'ovh_product_workflow.message_product_workflow',
-            values={'self': self, 'origin': product_change},
+            values={'self': new_object, 'origin': product_change},
             **msg_values)
 
-    @api.onchange('ovh_status')
-    def _onchange_ovh_status(self):
-        for template in self:
-            # self.ovh_status holds the new OVH status of the product
-            if self.ovh_status == 'indus':
-                # When status is changed to 10, check the box "Can be sold"
-                template.sale_ok = True
-            elif self.ovh_status == 'eol':
-                # When status is changed to EoL,
-                # uncheck the box "Can be purchased"
-                template.purchase_ok = False
-            self.email_product_state_change(template.product_variant_id)
-        return
-
-    @api.model
-    def send_notify_product_state_change(self, product):
-        # send email to recipients from the Product State Change Channel.
-        self.email_product_state_change(product)
-        return True
-
-
-class ProductVariants(models.Model):
-    _inherit = 'product.product'
-
-    # TBD: check on how not to affect service/consumable product
-    ovh_status = fields.Selection(
-        [('proto', '[1]Proto R&D'), ('indus', '[10]Preserie Indus'),
-         ('pprod', '[100]Preserie Prod'), ('mprod', '[1000]Mass-Prod'),
-         ('eol', 'End of Life'), ('inactive', 'Inactive')],
-        default='proto',
-        string='OVH Status',
-        track_visibility='onchange')
-
-    @api.model
-    def email_product_state_change(self, product_change):
-        if not product_change:
-            return
-        msg_values = self.env['product.template']._prepare_product_workflow()
-        product_change.message_post_with_view(
-            'ovh_product_workflow.message_product_workflow',
-            values={'self': self, 'origin': product_change},
-            **msg_values)
-
-    @api.onchange('ovh_status')
-    def _onchange_ovh_status(self):
-        for product in self:
-            # self.ovh_status holds the new OVH status of the product
-            if self.ovh_status == 'indus':
-                # When status is changed to 10, check the box "Can be sold"
-                product.product_variant_id.product_tmpl_id.sale_ok = True
-            elif self.ovh_status == 'eol':
-                # When status is changed to EoL,
-                # uncheck the box "Can be purchased"
-                product.product_variant_id.product_tmpl_id.purchase_ok = False
-            self.email_product_state_change(product.product_variant_id)
+    @api.onchange('status')
+    def _onchange_status(self):
+        context = self._context
+        product_id = context.get('product_id') or False
+        if product_id:
+            for product in self:
+                # self.status holds the new OVH status of the product
+                if product.status == 'indus':
+                    # When status is changed to 10, check the box "Can be sold"
+                    product.product_tmpl_id.sale_ok = True
+                elif product.status == 'eol':
+                    # When status is changed to EoL,
+                    # uncheck the box "Can be purchased"
+                    product.product_tmpl_id.purchase_ok = False
+                # get active product that is being updated
+                active_product = product.browse(product_id)
+                product.email_product_state_change(product, active_product)
         return

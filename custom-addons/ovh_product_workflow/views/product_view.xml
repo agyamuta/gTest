@@ -8,9 +8,10 @@
         <field name="arch" type="xml">
             <sheet position="before">
                 <header>
-                    <field name="ovh_status" widget="statusbar" clickable="True" 
-                     statusbar_visible="proto,indus,pprod,mprod,eol,inactive" 
-                     attrs="{'invisible':[('type', 'not in', 'product')]}"/>
+                    <field name="status" widget="statusbar" clickable="True"
+                     statusbar_visible="proto,indus,pprod,mprod,eol,inactive"
+                     attrs="{'invisible':[('type', 'not in', 'product')]}"
+                     context="{'product_id':id}"/>
                 </header>
             </sheet>
         </field>
@@ -23,9 +24,10 @@
         <field name="arch" type="xml">
             <sheet position="before">
                 <header>
-                    <field name="ovh_status" widget="statusbar" clickable="True" 
+                    <field name="status" widget="statusbar" clickable="True"
                      statusbar_visible="proto,indus,pprod,mprod,eol,inactive"
-                     attrs="{'invisible':[('type', 'not in', 'product')]}"/>
+                     attrs="{'invisible':[('type', 'not in', 'product')]}"
+                     context="{'product_id':id}"/>
                 </header>
             </sheet>
         </field>
@@ -36,7 +38,7 @@
         <field name="inherit_id" ref="product.product_product_tree_view"/>
         <field name="arch" type="xml">
             <field name="lst_price" position="before">
-                <field name="ovh_status"/>
+                <field name="status"/>
             </field>
         </field>
     </record>
@@ -46,7 +48,7 @@
         <field name="inherit_id" ref="product.product_template_tree_view"/>
         <field name="arch" type="xml">
             <field name="list_price" position="before">
-                <field name="ovh_status"/>
+                <field name="status"/>
             </field>
         </field>
     </record>

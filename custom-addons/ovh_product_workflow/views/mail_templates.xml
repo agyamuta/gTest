@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0"?>
 <odoo>
     <data>
         <template id="message_product_workflow">
@@ -17,7 +17,7 @@
                           </a>
                        </td>
                        <td>&#160;&#160;&#160;&#160;&#160;&#160;</td>
-                       <td> <span t-field="o.ovh_status"/>&#160;->&#160;<span t-field="self.ovh_status"/></td>
+                       <td> <span t-field="o.status"/>&#160;->&#160;<span t-field="self.status"/></td>
                    </tr>
                 </t>
             </table>
