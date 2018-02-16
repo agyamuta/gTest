@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<odoo>
+    <record id="view_partner_form_workflow" model="ir.ui.view">
+        <field name="name">res.partner.form.workflow</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="/form/sheet/notebook/page[@name='sales_purchases']/group/group/field[@name='customer']" position="after">
+                <field name="broker"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>
+

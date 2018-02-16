@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <template id="message_product_workflow">
+            <table class= "table table-bordered table-striped table-hover text-center mt16 table-comparator">
+                <thead>
+                    <tr>
+                        <th>Product Name</th>
+                        <th></th>
+                        <th>Updated Status</th>
+                    </tr>
+                </thead>
+                <t t-foreach="origin" t-as="o">
+                   <tr>
+                       <td><a href="#" t-att-data-oe-model="o._name" t-att-data-oe-id="o.id">
+                               <t t-esc="o.display_name"/>
+                          </a>
+                       </td>
+                       <td>&#160;&#160;&#160;&#160;&#160;&#160;</td>
+                       <td> <span t-field="o.ovh_status"/>&#160;->&#160;<span t-field="self.ovh_status"/></td>
+                   </tr>
+                </t>
+            </table>
+        </template>
+    </data>
+</odoo>
+
